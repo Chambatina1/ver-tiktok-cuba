@@ -1,0 +1,7 @@
+name = "ver-tiktok-cuba"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Sin variables extras — todo esta hardcodeado en el worker
+# Para deploy: npx wrangler deploy
+# URL resultante: https://ver-tiktok-cuba.tu-usuario.workers.dev
