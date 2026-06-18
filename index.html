@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Ver TikTok desde Cuba | Chambatina</title>
+<meta name="description" content="Mira contenido de TikTok desde Cuba sin VPN y sin instalar la app">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#fff;min-height:100vh}
@@ -46,140 +47,386 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .showcase-item .thumb{aspect-ratio:9/12;background:#111;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
 .showcase-item .thumb img{width:100%;height:100%;object-fit:cover}
 .showcase-item .thumb .ov{position:absolute;bottom:0;left:0;right:0;padding:10px;background:linear-gradient(transparent,rgba(0,0,0,.8));font-size:11px;color:#fff;font-weight:500}
-.hidden{display:none}
+.error-box{text-align:center;padding:40px 20px}
+.error-box .icon{width:80px;height:80px;border-radius:16px;background:rgba(236,72,153,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.error-box h3{font-size:17px;margin-bottom:8px}
+.error-box p{font-size:12px;color:#888;word-break:break-all;margin-bottom:16px}
+.debug{font-size:10px;color:#444;margin-top:8px;word-break:break-all;max-height:60px;overflow:hidden}
 </style>
 </head>
 <body>
-<div class="header"><div class="header-inner"><div class="logo">T</div><div><h1>Ver TikTok desde Cuba</h1><p>Sin VPN, sin app — funciona desde cualquier lugar</p></div></div></div>
+<div class="header"><div class="header-inner"><div class="logo">T</div><div><h1>Ver TikTok desde Cuba</h1><p>Sin VPN, sin app &mdash; funciona desde cualquier lugar</p></div></div></div>
 <div class="container">
-  <div class="search"><input type="text" id="urlInput" placeholder="Pega el link de TikTok aqui..." /><button onclick="go()"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ver</button></div>
+  <div class="search"><input type="text" id="urlInput" placeholder="Pega el link de TikTok aqui..." /><button onclick="go()" id="goBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ver</button></div>
   <p class="hint">Pega cualquier link: videos, fotos o perfiles de TikTok</p>
   <div id="content"></div>
-  <div class="footer">Powered by <span>Chambatina</span> — Tu puente con Cuba<br>7523 Aloma Ave, Winter Park, FL 32792 · (786) 942-6904</div>
+  <div class="footer">Powered by <span>Chambatina</span> &mdash; Tu puente con Cuba<br>7523 Aloma Ave, Winter Park, FL 32792 &middot; (786) 942-6904</div>
 </div>
+
 <script>
-var TK='https://www.tikwm.com/api/',PX='https://www.chambatina.com/api/tiktok/proxy-image?url=',PH='17869426904';
-var SHOWCASE=['https://www.tiktok.com/@chambatina/photo/7511890283794025758','https://www.tiktok.com/@chambatina'];
-var ui=document.getElementById('urlInput'),ct=document.getElementById('content');
-ui.addEventListener('keydown',function(e){if(e.key==='Enter')go()});
+/* ============================================
+   CONFIG — NO Render, NO chambatina.com proxy
+   Everything uses free public services
+   ============================================ */
+var PH = '17869426904';
 
-var p=new URLSearchParams(location.search),iu=p.get('url')||p.get('u')||p.get('link');
-if(iu){ui.value=iu;go()}else{loadShowcase()}
+// Image proxy: weserv.nl is free, global, CORS-enabled, caches images
+function proxyImg(rawUrl) {
+  if (!rawUrl) return '';
+  // weserv.nl needs the URL encoded without the protocol
+  var clean = rawUrl.replace(/^https?:\/\//, '');
+  return 'https://images.weserv.nl/?url=' + encodeURIComponent(clean) + '&w=720&q=80';
+}
 
-function loadShowcase(){
-  var h='<div class="showcase-grid">';
-  for(var i=0;i<SHOWCASE.length;i++){
-    var u=SHOWCASE[i],isP=u.match(/\/@[\w.]+$/);
-    h+='<div class="showcase-item" onclick="loadUrl(\''+u+'\')"><div class="thumb" id="t'+i+'"><div style="color:#555;font-size:32px">🎵</div>'+(isP?'<div class="ov">@chambatina — Perfil</div>':'<div class="ov">Cargando...</div>')+'</div></div>';
+// Image proxy fallback: corsproxy.io
+function proxyImgAlt(rawUrl) {
+  if (!rawUrl) return '';
+  return 'https://corsproxy.io/?' + encodeURIComponent(rawUrl);
+}
+
+// TikWM API direct (has CORS: access-control-allow-origin: *)
+var TK_DIRECT = 'https://www.tikwm.com/api/';
+// TikWM via CORS proxy (fallback if tikwm.com blocked from Cuba)
+var TK_VIA_PROXY = 'https://corsproxy.io/?' + encodeURIComponent('https://www.tikwm.com/api/');
+// noembed oEmbed fallback
+var NOEMBED = 'https://noembed.com/embed?url=';
+
+var SHOWCASE = [
+  'https://www.tiktok.com/@chambatina/photo/7511890283794025758',
+  'https://www.tiktok.com/@chambatina'
+];
+
+var ui = document.getElementById('urlInput');
+var ct = document.getElementById('content');
+var goBtn = document.getElementById('goBtn');
+
+ui.addEventListener('keydown', function(e) { if (e.key === 'Enter') go(); });
+
+// Auto-load if URL param present
+var p = new URLSearchParams(location.search);
+var iu = p.get('url') || p.get('u') || p.get('link');
+if (iu) { ui.value = iu; go(); } else { loadShowcase(); }
+
+/* ============================================
+   SHOWCASE GRID
+   ============================================ */
+function loadShowcase() {
+  var h = '<div class="showcase-grid">';
+  for (var i = 0; i < SHOWCASE.length; i++) {
+    var u = SHOWCASE[i];
+    var isProfile = u.match(/\/@[\w.]+$/);
+    h += '<div class="showcase-item" onclick="loadUrl(\'' + u + '\')">' +
+         '<div class="thumb" id="t' + i + '">' +
+         '<div style="color:#555;font-size:32px">&#9835;</div>' +
+         (isProfile ? '<div class="ov">@chambatina &mdash; Perfil</div>' : '<div class="ov">Cargando...</div>') +
+         '</div></div>';
   }
-  h+='</div>';
-  ct.innerHTML=h;
-  for(var i=0;i<SHOWCASE.length;i++)loadThumb(SHOWCASE[i],i);
+  h += '</div>';
+  ct.innerHTML = h;
+  for (var i = 0; i < SHOWCASE.length; i++) loadThumb(SHOWCASE[i], i);
 }
 
-function loadThumb(url,idx){
-  try{
-    var f=new FormData();f.append('url',url);f.append('web','1');
-    fetch(TK,{method:'POST',body:f}).then(function(r){return r.json()}).then(function(j){
-      if(j.code!==0||!j.data)return;
-      var d=j.data,img='';
-      if(d.images&&d.images.length)img=d.images[0];
-      else if(d.origin_cover)img='https://www.tikwm.com'+d.origin_cover;
-      if(!img)return;
-      var el=document.getElementById('t'+idx);if(!el)return;
-      var title=d.title||'TikTok';
-      var im=new Image();
-      im.onload=function(){el.innerHTML='<img src="'+img+'" /><div class="ov">'+esc(title)+'</div>'};
-      im.onerror=function(){
-        var im2=new Image();
-        im2.onload=function(){el.innerHTML='<img src="'+PX+encodeURIComponent(img)+'" /><div class="ov">'+esc(title)+'</div>'};
-        im2.onerror=function(){el.innerHTML='<div style="color:#555;font-size:32px">🎵</div><div class="ov">'+esc(title)+'</div>'};
-        im2.src=PX+encodeURIComponent(img);
-      };
-      im.src=img;
-    }).catch(function(){});
-  }catch(e){}
+function loadThumb(url, idx) {
+  fetchTikWM(url, 8000).then(function(d) {
+    if (!d) return;
+    var img = getBestImage(d);
+    var title = d.title || 'TikTok';
+    var el = document.getElementById('t' + idx);
+    if (!el || !img) return;
+    var im = new Image();
+    im.onload = function() { el.innerHTML = '<img src="' + proxyImg(img) + '" /><div class="ov">' + esc(title) + '</div>'; };
+    im.onerror = function() {
+      // Fallback: try with corsproxy
+      var im2 = new Image();
+      im2.onload = function() { el.innerHTML = '<img src="' + proxyImgAlt(img) + '" /><div class="ov">' + esc(title) + '</div>'; };
+      im2.onerror = function() { el.innerHTML = '<div style="color:#555;font-size:32px">&#9835;</div><div class="ov">' + esc(title) + '</div>'; };
+      im2.src = proxyImgAlt(img);
+    };
+    im.src = proxyImg(img);
+  }).catch(function() {});
 }
 
-function loadUrl(url){ui.value=url;go()}
+function loadUrl(url) { ui.value = url; go(); }
 
-function go(){
-  var url=ui.value.trim();if(!url)return;
-  if(!url.startsWith('http'))url='https://'+url;
-  ct.innerHTML='<div class="loading"><div class="spinner"></div><p style="color:#888;font-size:13px">Obteniendo contenido...</p></div>';
+/* ============================================
+   MAIN: Load TikTok content
+   ============================================ */
+function go() {
+  var url = ui.value.trim();
+  if (!url) return;
+  if (!url.startsWith('http')) url = 'https://' + url;
+  
+  goBtn.disabled = true;
+  ct.innerHTML = '<div class="loading"><div class="spinner"></div><p style="color:#888;font-size:13px">Obteniendo contenido...</p></div>';
 
-  var f=new FormData();f.append('url',url);f.append('web','1');f.append('hd','1');
+  // Try TikWM first (direct), then via CORS proxy, then noembed
+  fetchTikWM(url, 10000).then(function(d) {
+    if (d) return renderTikWM(d, url);
+    // TikWM failed — try noembed
+    return fetchNoEmbed(url).then(function(ne) {
+      if (ne) return renderNoEmbed(ne, url);
+      throw new Error('all APIs failed');
+    });
+  }).catch(function(err) {
+    console.error('All APIs failed:', err);
+    renderFallback(url);
+  }).finally(function() { goBtn.disabled = false; });
+}
 
-  fetch(TK,{method:'POST',body:f}).then(function(r){return r.json()}).then(function(j){
-    if(j.code!==0||!j.data)throw new Error('no data');
-    var d=j.data,isP=d.images&&d.images.length>0,imgs=[];
-    if(isP)imgs=imgs.concat(d.images);
-    if(d.origin_cover)imgs.push('https://www.tikwm.com'+d.origin_cover);
-    if(d.cover)imgs.push('https://www.tikwm.com'+d.cover);
+/* ============================================
+   TikWM API — tries direct, then CORS proxy
+   ============================================ */
+function fetchTikWM(url, timeout) {
+  return new Promise(function(resolve) {
+    var timeoutId = setTimeout(function() {
+      // Direct timed out, try via CORS proxy
+      fetchTikWMViaProxy(url, timeout).then(resolve).catch(function() { resolve(null); });
+    }, timeout);
 
-    var au=d.author?(d.author.nickname||d.author.unique_id||''):'';
-    var av=d.author&&d.author.avatar?'https://www.tikwm.com'+d.author.avatar:'';
-    var desc=d.desc||'';
-    if(d.content_desc&&d.content_desc.length)desc+=(desc?'\n':'')+d.content_desc.join('\n');
-    var st=[];
-    if(d.play_count)st.push('\u2764\uFE0F '+fN(d.play_count));
-    if(d.comment_count)st.push('\uD83D\uDCAC '+fN(d.comment_count));
-    if(d.share_count)st.push('\uD83D\uDD17 '+fN(d.share_count));
+    var f = new FormData();
+    f.append('url', url);
+    f.append('web', '1');
+    f.append('hd', '1');
 
-    var wt=encodeURIComponent('Vi esto en tu TikTok y me interesa:\n\n'+(d.title||'Video')+'\nAutor: @'+au+'\n\nLink: '+url);
-    var wl='https://wa.me/'+PH+'?text='+wt;
-    history.replaceState({},'','?url='+encodeURIComponent(url));
-
-    var h='<div class="card">';
-    if(imgs.length){
-      h+='<div class="img-container" id="mi"><div style="text-align:center;padding:40px 0;color:#555"><div class="spinner" style="margin:0 auto 12px"></div><p style="font-size:12px">Cargando imagen...</p></div></div>';
-    }
-    h+='<div class="card-info">';
-    if(au){
-      h+='<div class="author"><div class="author-avatar">'+(av?'<img src="'+PX+encodeURIComponent(av)+'" onerror="this.parentNode.textContent=\''+esc(au[0]).toUpperCase()+'\'"/>':esc(au[0]).toUpperCase())+'</div><div><div style="font-size:13px;font-weight:600">@'+esc(au.replace('@',''))+'</div><div style="font-size:11px;color:#888">Creador de TikTok</div></div></div>';
-    }
-    if(d.title)h+='<h2>'+esc(d.title)+'</h2>';
-    if(desc.trim())h+='<p class="desc">'+esc(desc.trim())+'</p>';
-    if(st.length)h+='<div class="stats">'+st.join('  ')+'</div>';
-    h+='</div></div>';
-    h+='<a class="btn-wa" href="'+wl+'" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg> Lo quiero — Comprar por WhatsApp</a>';
-    h+='<button class="btn-share" onclick="share()">Compartir</button>';
-    ct.innerHTML=h;
-    if(imgs.length)tryImgs(imgs);
-  }).catch(function(err){
-    console.error(err);
-    var wt=encodeURIComponent('Vi un enlace de TikTok que me interesa:\n'+url);
-    var wl='https://wa.me/'+PH+'?text='+wt;
-    ct.innerHTML='<div class="card" style="text-align:center;padding:40px 20px"><div style="width:80px;height:80px;border-radius:16px;background:rgba(236,72,153,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px"><svg viewBox="0 0 24 24" fill="#ec4899" width="40" height="40"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.46A6.34 6.34 0 0015.35 15V8.39a8.16 8.16 0 004.24 1.19V6.11a4.85 4.85 0 01-1-.42z"/></svg></div><h3 style="font-size:17px;margin-bottom:8px">Enlace de TikTok</h3><p style="font-size:12px;color:#888;word-break:break-all;margin-bottom:16px">'+esc(url)+'</p></div><a class="btn-wa" href="'+wl+'" target="_blank" rel="noopener">Me interesa — Contactar por WhatsApp</a>';
+    fetch(TK_DIRECT, { method: 'POST', body: f })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        clearTimeout(timeoutId);
+        if (j.code === 0 && j.data) resolve(j.data);
+        else {
+          // TikWM returned error, try via proxy
+          fetchTikWMViaProxy(url, timeout).then(resolve).catch(function() { resolve(null); });
+        }
+      })
+      .catch(function() {
+        clearTimeout(timeoutId);
+        // Direct fetch failed (blocked?), try via CORS proxy
+        fetchTikWMViaProxy(url, timeout).then(resolve).catch(function() { resolve(null); });
+      });
   });
 }
 
-function tryImgs(urls){
-  var c=document.getElementById('mi');if(!c)return;
-  var i=0;
-  function nxt(){
-    if(i>=urls.length){c.innerHTML='<div style="text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:8px">🎵</div><p style="color:#666;font-size:13px">Imagen no disponible</p></div>';return}
-    var url=urls[i++],im=new Image();
-    im.onload=function(){c.innerHTML='<img class="cover-img" src="'+url+'" />'};
-    im.onerror=function(){
-      var im2=new Image();
-      im2.onload=function(){c.innerHTML='<img class="cover-img" src="'+PX+encodeURIComponent(url)+'" />'};
-      im2.onerror=function(){nxt()};
-      im2.src=PX+encodeURIComponent(url);
+function fetchTikWMViaProxy(url, timeout) {
+  return new Promise(function(resolve) {
+    var tid = setTimeout(function() { resolve(null); }, timeout);
+    var f = new FormData();
+    f.append('url', url);
+    f.append('web', '1');
+    f.append('hd', '1');
+    // Use corsproxy.io to reach TikWM
+    var proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://www.tikwm.com/api/');
+    fetch(proxyUrl, { method: 'POST', body: f })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        clearTimeout(tid);
+        resolve((j.code === 0 && j.data) ? j.data : null);
+      })
+      .catch(function() { clearTimeout(tid); resolve(null); });
+  });
+}
+
+/* ============================================
+   noembed oEmbed fallback
+   ============================================ */
+function fetchNoEmbed(url) {
+  return new Promise(function(resolve) {
+    var tid = setTimeout(function() { resolve(null); }, 8000);
+    fetch(NOEMBED + encodeURIComponent(url))
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        clearTimeout(tid);
+        resolve((j && !j.error) ? j : null);
+      })
+      .catch(function() { clearTimeout(tid); resolve(null); });
+  });
+}
+
+/* ============================================
+   Get best image URL from TikWM data
+   ============================================ */
+function getBestImage(d) {
+  // Photo posts have full tiktokcdn.com URLs in images array
+  if (d.images && d.images.length) return d.images[0];
+  // Video posts: try origin_cover (needs tikwm.com prefix for relative URLs)
+  if (d.origin_cover) {
+    if (d.origin_cover.startsWith('http')) return d.origin_cover;
+    return 'https://www.tikwm.com' + d.origin_cover;
+  }
+  if (d.cover) {
+    if (d.cover.startsWith('http')) return d.cover;
+    return 'https://www.tikwm.com' + d.cover;
+  }
+  return null;
+}
+
+function getAllImages(d) {
+  var imgs = [];
+  // Photo post images (full URLs from tiktokcdn.com — work via proxy)
+  if (d.images && d.images.length) {
+    for (var i = 0; i < d.images.length; i++) imgs.push(d.images[i]);
+  }
+  // Cover images (may be relative URLs needing tikwm.com prefix)
+  if (d.origin_cover) {
+    var oc = d.origin_cover.startsWith('http') ? d.origin_cover : 'https://www.tikwm.com' + d.origin_cover;
+    imgs.push(oc);
+  }
+  if (d.cover) {
+    var cv = d.cover.startsWith('http') ? d.cover : 'https://www.tikwm.com' + d.cover;
+    imgs.push(cv);
+  }
+  return imgs;
+}
+
+/* ============================================
+   RENDER: TikWM data (rich)
+   ============================================ */
+function renderTikWM(d, url) {
+  var isPhoto = d.images && d.images.length > 0;
+  var imgs = getAllImages(d);
+  
+  var au = d.author ? (d.author.nickname || d.author.unique_id || '') : '';
+  var avRaw = (d.author && d.author.avatar) ? d.author.avatar : '';
+  if (avRaw && !avRaw.startsWith('http')) avRaw = 'https://www.tikwm.com' + avRaw;
+
+  var desc = d.desc || '';
+  if (d.content_desc && d.content_desc.length) desc += (desc ? '\n' : '') + d.content_desc.join('\n');
+
+  var st = [];
+  if (d.play_count) st.push('\u2764\uFE0F ' + fN(d.play_count));
+  if (d.comment_count) st.push('\uD83D\uDCAC ' + fN(d.comment_count));
+  if (d.share_count) st.push('\uD83D\uDD17 ' + fN(d.share_count));
+
+  var wt = encodeURIComponent('Vi esto en tu TikTok y me interesa:\n\n' + (d.title || 'Video') + '\nAutor: @' + au + '\n\nLink: ' + url);
+  var wl = 'https://wa.me/' + PH + '?text=' + wt;
+  history.replaceState({}, '', '?url=' + encodeURIComponent(url));
+
+  var h = '<div class="card">';
+  if (imgs.length) {
+    h += '<div class="img-container" id="mi"><div style="text-align:center;padding:40px 0;color:#555"><div class="spinner" style="margin:0 auto 12px"></div><p style="font-size:12px">Cargando imagen...</p></div></div>';
+  }
+  h += '<div class="card-info">';
+  if (au) {
+    var avHtml = avRaw
+      ? '<img src="' + proxyImg(avRaw) + '" onerror="this.parentNode.textContent=\'' + esc(au[0]).toUpperCase() + '\'" />'
+      : esc(au[0]).toUpperCase();
+    h += '<div class="author"><div class="author-avatar">' + avHtml + '</div><div><div style="font-size:13px;font-weight:600">@' + esc(au.replace('@', '')) + '</div><div style="font-size:11px;color:#888">Creador de TikTok</div></div></div>';
+  }
+  if (d.title) h += '<h2>' + esc(d.title) + '</h2>';
+  if (desc.trim()) h += '<p class="desc">' + esc(desc.trim()) + '</p>';
+  if (st.length) h += '<div class="stats">' + st.join('  ') + '</div>';
+  h += '</div></div>';
+  h += '<a class="btn-wa" href="' + wl + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg> Lo quiero &mdash; Comprar por WhatsApp</a>';
+  h += '<button class="btn-share" onclick="share()">Compartir</button>';
+  ct.innerHTML = h;
+  if (imgs.length) tryImgs(imgs);
+}
+
+/* ============================================
+   RENDER: noembed data (basic)
+   ============================================ */
+function renderNoEmbed(ne, url) {
+  var title = ne.title || 'Contenido de TikTok';
+  var author = ne.author_name || '';
+  var thumb = ne.thumbnail_url || '';
+  var provider = ne.provider_name || 'TikTok';
+
+  var wt = encodeURIComponent('Vi esto en ' + provider + ' y me interesa:\n\n' + title + (author ? '\nAutor: ' + author : '') + '\n\nLink: ' + url);
+  var wl = 'https://wa.me/' + PH + '?text=' + wt;
+  history.replaceState({}, '', '?url=' + encodeURIComponent(url));
+
+  var h = '<div class="card">';
+  if (thumb) {
+    h += '<div class="img-container" id="mi"><div style="text-align:center;padding:40px 0;color:#555"><div class="spinner" style="margin:0 auto 12px"></div><p style="font-size:12px">Cargando imagen...</p></div></div>';
+  }
+  h += '<div class="card-info">';
+  if (author) {
+    h += '<div class="author"><div class="author-avatar">' + esc(author[0]).toUpperCase() + '</div><div><div style="font-size:13px;font-weight:600">' + esc(author) + '</div><div style="font-size:11px;color:#888">' + esc(provider) + '</div></div></div>';
+  }
+  h += '<h2>' + esc(title) + '</h2>';
+  h += '</div></div>';
+  h += '<a class="btn-wa" href="' + wl + '" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg> Me interesa &mdash; Contactar por WhatsApp</a>';
+  h += '<button class="btn-share" onclick="share()">Compartir</button>';
+  ct.innerHTML = h;
+  if (thumb) tryImgs([thumb]);
+}
+
+/* ============================================
+   RENDER: All APIs failed — show WhatsApp CTA
+   ============================================ */
+function renderFallback(url) {
+  var wt = encodeURIComponent('Vi un enlace de TikTok que me interesa:\n' + url);
+  var wl = 'https://wa.me/' + PH + '?text=' + wt;
+  var h = '<div class="card"><div class="error-box">' +
+    '<div class="icon"><svg viewBox="0 0 24 24" fill="#ec4899" width="40" height="40"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.46A6.34 6.34 0 0015.35 15V8.39a8.16 8.16 0 004.24 1.19V6.11a4.85 4.85 0 01-1-.42z"/></svg></div>' +
+    '<h3>No se pudo cargar el contenido</h3>' +
+    '<p style="word-break:break-all">' + esc(url) + '</p>' +
+    '<p style="color:#666;font-size:12px;margin-top:4px">Es posible que este enlace este bloqueado desde tu ubicacion. Contactanos por WhatsApp y te ayudamos.</p>' +
+    '</div></div>';
+  h += '<a class="btn-wa" href="' + wl + '" target="_blank" rel="noopener">Me interesa &mdash; Contactar por WhatsApp</a>';
+  h += '<button class="btn-share" onclick="share()">Compartir</button>';
+  ct.innerHTML = h;
+}
+
+/* ============================================
+   IMAGE LOADER — tries multiple proxies
+   ============================================ */
+function tryImgs(urls) {
+  var c = document.getElementById('mi');
+  if (!c) return;
+  var i = 0;
+  function nxt() {
+    if (i >= urls.length) {
+      c.innerHTML = '<div style="text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:8px">&#9835;</div><p style="color:#666;font-size:13px">Imagen no disponible desde tu ubicacion</p></div>';
+      return;
+    }
+    var rawUrl = urls[i++];
+
+    // Strategy 1: Direct via weserv.nl (best for most cases)
+    var im = new Image();
+    im.onload = function() { c.innerHTML = '<img class="cover-img" src="' + proxyImg(rawUrl) + '" />'; };
+    im.onerror = function() {
+      // Strategy 2: Via corsproxy.io
+      var im2 = new Image();
+      im2.onload = function() { c.innerHTML = '<img class="cover-img" src="' + proxyImgAlt(rawUrl) + '" />'; };
+      im2.onerror = function() {
+        // Strategy 3: Try raw URL directly (might work if it's tiktokcdn.com)
+        var im3 = new Image();
+        im3.onload = function() { c.innerHTML = '<img class="cover-img" src="' + esc(rawUrl) + '" />'; };
+        im3.onerror = function() { nxt(); };
+        im3.src = rawUrl;
+      };
+      im2.src = proxyImgAlt(rawUrl);
     };
-    im.src=url;
+    im.src = proxyImg(rawUrl);
   }
   nxt();
 }
 
-function share(){
-  var u=location.origin+location.pathname+'?url='+encodeURIComponent(ui.value);
-  if(navigator.share)navigator.share({title:'Ver TikTok desde Cuba',url:u});
-  else{navigator.clipboard.writeText(u);var b=document.querySelector('.btn-share');if(b){b.textContent='¡Copiado!';setTimeout(function(){b.textContent='Compartir'},2000)}}
+/* ============================================
+   UTILITIES
+   ============================================ */
+function share() {
+  var u = location.origin + location.pathname + '?url=' + encodeURIComponent(ui.value);
+  if (navigator.share) navigator.share({ title: 'Ver TikTok desde Cuba', url: u });
+  else {
+    navigator.clipboard.writeText(u).then(function() {
+      var b = document.querySelector('.btn-share');
+      if (b) { b.textContent = 'Copiado!'; setTimeout(function() { b.textContent = 'Compartir'; }, 2000); }
+    });
+  }
 }
 
-function fN(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return String(n)}
-function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML}
+function fN(n) {
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return String(n);
+}
+
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
 </script>
 </body>
 </html>
