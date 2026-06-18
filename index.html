@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ver TikTok desde Cuba | Chambatina</title>
+<meta name="description" content="Mira contenido de TikTok desde Cuba sin VPN. Pega cualquier enlace y ve el contenido.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#fff;min-height:100vh}
+.header{border-bottom:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);backdrop-filter:blur(10px);padding:16px}
+.header-inner{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#ec4899,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;flex-shrink:0}
+.header h1{font-size:16px;font-weight:700}
+.header p{font-size:11px;color:#888}
+.container{max-width:600px;margin:0 auto;padding:20px 16px}
+.search{display:flex;gap:8px;margin-bottom:24px}
+.search input{flex:1;height:48px;padding:0 16px 0 40px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.08);color:#fff;font-size:14px;outline:none}
+.search input:focus{border-color:rgba(236,72,153,.5);box-shadow:0 0 0 3px rgba(236,72,153,.15)}
+.search input::placeholder{color:#666}
+.search button{height:48px;padding:0 20px;border-radius:12px;border:none;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:#fff;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap}
+.search button:disabled{opacity:.4;cursor:not-allowed}
+.search button svg{width:16px;height:16px}
+.hint{font-size:11px;color:#555;margin-top:8px}
+.loading{text-align:center;padding:80px 0}
+.spinner{width:48px;height:48px;border:3px solid rgba(236,72,153,.2);border-top-color:#ec4899;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden;margin-bottom:16px}
+.card img{width:100%;display:block}
+.card-info{padding:16px}
+.author{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.author-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#ec4899,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;overflow:hidden}
+.author-avatar img{width:100%;height:100%;object-fit:cover}
+.author-name{font-size:13px;font-weight:600}
+.author-label{font-size:11px;color:#888}
+.card-info h2{font-size:15px;font-weight:600;margin-bottom:8px;line-height:1.4}
+.card-info p{font-size:13px;color:#ccc;line-height:1.5;white-space:pre-wrap}
+.stats{display:flex;gap:16px;margin-top:12px;font-size:12px;color:#888}
+.tiktok-badge{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);padding:4px 10px;border-radius:20px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500}
+.tiktok-dot{width:14px;height:14px;border-radius:3px;background:linear-gradient(135deg,#ec4899,#8b5cf6)}
+.img-container{position:relative}
+.play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.play-circle{width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center}
+.play-circle svg{width:28px;height:28px;margin-left:3px}
+.btn-whatsapp{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:52px;border-radius:12px;border:none;background:#22c55e;color:#fff;font-weight:600;font-size:15px;cursor:pointer;text-decoration:none;margin-bottom:16px;box-shadow:0 8px 24px rgba(34,197,94,.25)}
+.btn-whatsapp:hover{background:#16a34a}
+.btn-whatsapp svg{width:20px;height:20px}
+.btn-share{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;border-radius:12px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-weight:500;font-size:13px;cursor:pointer;margin-bottom:24px}
+.btn-share:hover{background:rgba(255,255,255,.1)}
+.fallback{text-align:center;padding:40px 20px}
+.fallback-icon{width:80px;height:80px;border-radius:16px;background:rgba(236,72,153,.1);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.fallback-icon svg{width:40px;height:40px;color:#ec4899}
+.fallback h3{font-size:17px;font-weight:600;margin-bottom:8px}
+.fallback p{font-size:13px;color:#888;word-break:break-all;margin-bottom:4px}
+.footer{text-align:center;padding:16px;font-size:11px;color:#444}
+.footer span{color:#ec4899;font-weight:600}
+.instructions{text-align:center;padding:40px 0}
+.instructions h2{font-size:20px;font-weight:700;margin-bottom:8px}
+.instructions>p{font-size:13px;color:#888;max-width:320px;margin:0 auto 24px}
+.steps{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;max-width:380px;margin:0 auto 20px}
+.step{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px 10px}
+.step .num{font-size:22px;margin-bottom:4px}
+.step p{font-size:11px;color:#888}
+.tip{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15);border-radius:12px;padding:12px;max-width:340px;margin:0 auto}
+.tip p{font-size:11px;color:rgba(253,224,71,.7)}
+.tip strong{color:rgba(253,224,71,.9)}
+.error{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.15);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;gap:10px}
+.error svg{width:20px;height:20px;color:#ef4444;flex-shrink:0;margin-top:2px}
+.error-text{font-size:13px;color:#fca5a5}
+.error-detail{font-size:11px;color:rgba(252,165,165,.6);margin-top:4px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="logo">T</div>
+    <div>
+      <h1>Ver TikTok desde Cuba</h1>
+      <p>Sin VPN, sin app — funciona desde cualquier lugar</p>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="search">
+    <input type="text" id="urlInput" placeholder="Pega el link de TikTok aqui..." />
+    <button id="btnVer" onclick="fetchTikTok()">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      Ver
+    </button>
+  </div>
+  <p class="hint">Pega cualquier link de TikTok: videos, fotos o perfiles</p>
+
+  <div id="loadingState" class="hidden">
+    <div class="loading">
+      <div class="spinner"></div>
+      <p style="color:#888;font-size:13px">Obteniendo contenido de TikTok...</p>
+    </div>
+  </div>
+
+  <div id="errorState" class="hidden">
+    <div class="error">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <div class="error-text" id="errorMsg">No se pudo cargar</div>
+        <div class="error-detail" id="errorDetail"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="resultState" class="hidden">
+    <!-- Filled by JS -->
+  </div>
+
+  <div id="emptyState">
+    <div class="instructions">
+      <h2>Ve TikTok desde Cuba</h2>
+      <p>Pega cualquier link de TikTok. Chambatina carga el contenido desde sus servidores, sin VPN y sin la app.</p>
+      <div class="steps">
+        <div class="step"><div class="num">1&#xFE0F;&#x20E3;</div><p>Copia el link del video</p></div>
+        <div class="step"><div class="num">2&#xFE0F;&#x20E3;</div><p>Pegalo y presiona Ver</p></div>
+        <div class="step"><div class="num">3&#xFE0F;&#x20E3;</div><p>Compartilo por WhatsApp</p></div>
+      </div>
+      <div class="tip">
+        <p><strong>Como funciona:</strong> Usamos TikWM para obtener la informacion y el servidor de Chambatina para mostrar las imagenes. No necesitas VPN ni la app de TikTok.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Powered by <span>Chambatina</span> — Tu puente con Cuba<br>
+    Envios a Cuba · 7523 Aloma Ave, Winter Park, FL 32792 · (786) 942-6904
+  </div>
+</div>
+
+<script>
+const PROXY = 'https://www.chambatina.com/api/tiktok/proxy-image?url=';
+const TIKWM = 'https://www.tikwm.com/api/';
+const PHONE = '17869426904';
+
+const $ = id => document.getElementById(id);
+const urlInput = $('urlInput');
+
+urlInput.addEventListener('keydown', e => { if (e.key === 'Enter') fetchTikTok(); });
+
+// Auto-load from URL params
+const params = new URLSearchParams(location.search);
+const initUrl = params.get('url') || params.get('u') || params.get('link');
+if (initUrl) { urlInput.value = initUrl; fetchTikTok(); }
+
+function showState(state) {
+  ['loadingState','errorState','resultState','emptyState'].forEach(id => {
+    $(id).classList.toggle('hidden', id !== state);
+  });
+}
+
+function proxy(url) {
+  if (!url || url.startsWith('data:')) return url;
+  return PROXY + encodeURIComponent(url);
+}
+
+async function fetchTikTok() {
+  let url = urlInput.value.trim();
+  if (!url) return;
+  if (!url.startsWith('http')) url = 'https://' + url;
+
+  showState('loadingState');
+
+  try {
+    // Call TikWM directly (CORS enabled)
+    const form = new FormData();
+    form.append('url', url);
+    form.append('web', '1');
+    form.append('hd', '1');
+
+    const res = await fetch(TIKWM, { method: 'POST', body: form });
+    const json = await res.json();
+
+    if (json.code !== 0 || !json.data) throw new Error('No se encontro el contenido');
+
+    const d = json.data;
+    const isPhoto = d.images && d.images.length > 0;
+    const imageUrl = isPhoto
+      ? d.images[0]
+      : (d.origin_cover ? 'https://www.tikwm.com' + d.origin_cover : '');
+    const videoUrl = d.hdplay || d.play ? 'https://www.tikwm.com' + (d.hdplay || d.play) : '';
+
+    // Build author
+    const author = d.author ? d.author.nickname || d.author.unique_id : '';
+    const avatarUrl = d.author && d.author.avatar ? 'https://www.tikwm.com' + d.author.avatar : '';
+
+    // Build description
+    let desc = d.desc || '';
+    if (d.content_desc && d.content_desc.length) desc += '\n' + d.content_desc.join('\n');
+
+    // Stats
+    const stats = [];
+    if (d.play_count) stats.push('\u2764\uFE0F ' + formatNum(d.play_count));
+    if (d.comment_count) stats.push('\uD83D\uDCAC ' + formatNum(d.comment_count));
+    if (d.share_count) stats.push('\uD83D\uDD17 ' + formatNum(d.share_count));
+
+    // WhatsApp message
+    const waText = encodeURIComponent(
+      'Vi esto en tu TikTok y me interesa:\n\n' +
+      (d.title || 'Video de TikTok') + '\n' +
+      'Autor: @' + author + '\n\n' +
+      'Link: ' + url
+    );
+    const waLink = 'https://wa.me/' + PHONE + '?text=' + waText;
+
+    // Update URL bar
+    history.replaceState({}, '', '/ver-tiktok?url=' + encodeURIComponent(url));
+
+    // Render card
+    let html = '<div class="card">';
+
+    // Image/Video
+    if (imageUrl) {
+      html += '<div class="img-container">';
+      html += '<img src="' + proxy(imageUrl) + '" alt="' + esc(d.title) + '" loading="eager" onerror="this.style.display=\'none\'" />';
+      html += '<div class="tiktok-badge"><div class="tiktok-dot"></div>TikTok</div>';
+      if (!isPhoto && videoUrl) {
+        html += '<div class="play-overlay"><div class="play-circle"><svg viewBox="0 0 24 24" fill="white"><path d="M8 5v14l11-7z"/></svg></div></div>';
+      }
+      html += '</div>';
+    } else {
+      html += '<div style="aspect-ratio:16/9;background:linear-gradient(135deg,rgba(236,72,153,.08),rgba(139,92,246,.08));display:flex;align-items:center;justify-content:center"><div style="text-align:center"><div style="font-size:48px;margin-bottom:8px">' + (isPhoto ? '\uD83D\uDDBC\uFE0F' : '\uD83C\uDFB5') + '</div><p style="color:#888;font-size:13px">Contenido de TikTok</p></div></div>';
+    }
+
+    html += '<div class="card-info">';
+
+    // Author
+    if (author) {
+      html += '<div class="author">';
+      html += '<div class="author-avatar">';
+      if (avatarUrl) {
+        html += '<img src="' + proxy(avatarUrl) + '" onerror="this.style.display=\'none\'" />';
+      } else {
+        html += esc(author[0] || '?').toUpperCase();
+      }
+      html += '</div>';
+      html += '<div><div class="author-name">@' + esc(author.replace('@','')) + '</div><div class="author-label">Creador de TikTok</div></div>';
+      html += '</div>';
+    }
+
+    // Title
+    if (d.title) {
+      html += '<h2>' + esc(d.title) + '</h2>';
+    }
+
+    // Description
+    if (desc.trim()) {
+      html += '<p>' + esc(desc.trim()) + '</p>';
+    }
+
+    // Stats
+    if (stats.length) {
+      html += '<div class="stats">' + stats.join(' ') + '</div>';
+    }
+
+    html += '</div></div>';
+
+    // WhatsApp CTA
+    html += '<a class="btn-whatsapp" href="' + waLink + '" target="_blank" rel="noopener">';
+    html += '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+    html += 'Lo quiero — Comprar por WhatsApp';
+    html += '</a>';
+
+    // Share button
+    html += '<button class="btn-share" onclick="sharePage()">';
+    html += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>';
+    html += 'Compartir este visor';
+    html += '</button>';
+
+    $('resultState').innerHTML = html;
+    showState('resultState');
+
+  } catch (err) {
+    console.error('TikWM error:', err);
+
+    // Fallback: try Chambatina API
+    try {
+      const res2 = await fetch('https://www.chambatina.com/api/tiktok/preview?url=' + encodeURIComponent(url));
+      const json2 = await res2.json();
+      if (json2.ok && json2.data) {
+        renderFallback(url, json2.data);
+        return;
+      }
+    } catch(e) { /* ignore */ }
+
+    // Even on error, show WhatsApp
+    renderFallback(url, null, err.message);
+  }
+}
+
+function renderFallback(url, data, errorMsg) {
+  const waText = encodeURIComponent('Vi un enlace de TikTok que me interesa:\n' + url);
+  const waLink = 'https://wa.me/' + PHONE + '?text=' + waText;
+
+  let html = '<div class="card"><div class="fallback">';
+  html += '<div class="fallback-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 00-.79-.05A6.34 6.34 0 003.15 15.2a6.34 6.34 0 0010.86 4.46A6.34 6.34 0 0015.35 15V8.39a8.16 8.16 0 004.24 1.19V6.11a4.85 4.85 0 01-1-.42z"/></svg></div>';
+
+  if (data && (data.thumbnail || data.title)) {
+    html += '<h3>' + esc(data.title || 'Contenido de TikTok') + '</h3>';
+    if (data.author) html += '<p style="color:#aaa;margin-bottom:4px">@' + esc(data.author) + '</p>';
+    if (data.description) html += '<p style="color:#aaa;font-size:12px;max-height:100px;overflow:hidden">' + esc(data.description) + '</p>';
+  } else {
+    html += '<h3>Enlace de TikTok detectado</h3>';
+    html += '<p>' + esc(url) + '</p>';
+    html += '<p style="color:#666;font-size:12px;margin-top:12px">No se pudo obtener la vista previa, pero puedes contactarnos por WhatsApp.</p>';
+    if (errorMsg) html += '<p style="color:#666;font-size:11px;margin-top:4px">Error: ' + esc(errorMsg) + '</p>';
+  }
+
+  html += '</div></div>';
+  html += '<a class="btn-whatsapp" href="' + waLink + '" target="_blank" rel="noopener">';
+  html += '<svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>';
+  html += 'Me interesa — Contactar por WhatsApp';
+  html += '</a>';
+
+  $('resultState').innerHTML = html;
+  showState('resultState');
+}
+
+function sharePage() {
+  const shareUrl = location.origin + '/ver-tiktok?url=' + encodeURIComponent(urlInput.value);
+  if (navigator.share) {
+    navigator.share({ title: 'Ver TikTok desde Cuba - Chambatina', url: shareUrl });
+  } else {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      const btn = document.querySelector('.btn-share');
+      const orig = btn.textContent;
+      btn.textContent = '¡Copiado!';
+      setTimeout(() => btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Compartir este visor', 2500);
+    });
+  }
+}
+
+function formatNum(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return String(n);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+</script>
+</body>
+</html>
